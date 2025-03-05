@@ -31,7 +31,6 @@ from .const import (
     DEFAULT_NAME,
     CONF_MIN_TEMP,
     CONF_MAX_TEMP,
-    CONF_CONTROLLER,
     CONF_REMOTE
 )
 
