@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import logging
 
-from .const import DOMAIN
+# Domain definition moved to climate.py
+DOMAIN = "mitsubishi_heavy_ac"
 
 _LOGGER = logging.getLogger(__name__)
 

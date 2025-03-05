@@ -4,66 +4,148 @@ from __future__ import annotations
 import logging
 import voluptuous as vol
 
-from homeassistant.components.climate import (
-    PLATFORM_SCHEMA,
-    ClimateEntity,
-    ClimateEntityFeature,
-    HVACMode,
-)
+from homeassistant.components.climate import ClimateEntity, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
+    ClimateEntityFeature, HVACMode,
     FAN_AUTO, FAN_LOW, FAN_MEDIUM, FAN_HIGH,
     SWING_OFF, SWING_ON,
 )
 from homeassistant.const import (
-    CONF_NAME, CONF_UNIQUE_ID, CONF_REMOTE, UnitOfTemperature, STATE_OFF, STATE_ON,
-    ATTR_TEMPERATURE, Platform
+    CONF_NAME, STATE_ON, STATE_OFF, STATE_UNKNOWN, STATE_UNAVAILABLE, ATTR_TEMPERATURE,
+    PRECISION_TENTHS, PRECISION_HALVES, PRECISION_WHOLE, UnitOfTemperature
 )
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.core import callback
+from homeassistant.helpers.event import async_track_state_change
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import (
-    DOMAIN, 
-    CONF_TEMPERATURE_SENSOR, 
-    CONF_HUMIDITY_SENSOR,
-    DEFAULT_NAME
-)
+# Constants that were previously in const.py
+DOMAIN = "mitsubishi_heavy_ac"
+DEFAULT_NAME = "Mitsubishi Heavy AC"
+
+CONF_UNIQUE_ID = 'unique_id'
+CONF_TEMPERATURE_SENSOR = "temperature_sensor"
+CONF_HUMIDITY_SENSOR = "humidity_sensor"
+CONF_REMOTE = "remote"
 
 _LOGGER = logging.getLogger(__name__)
 
+# Example device data - this would typically come from a JSON file or other configuration
+# In a real implementation, this could be expanded to include different models or customization options
+DEVICE_DATA = {
+    "srk-zsx": {
+        "name": "Mitsubishi Heavy SRK-ZSX",
+        "min_temp": 16,
+        "max_temp": 30,
+        "precision": 1.0,
+        "hvac_modes": [HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL, HVACMode.AUTO, HVACMode.DRY, HVACMode.FAN_ONLY],
+        "fan_modes": [FAN_AUTO, FAN_LOW, FAN_MEDIUM, FAN_HIGH],
+        "swing_modes": [SWING_OFF, SWING_ON],
+        "commands": {
+            # Example IR/RF commands for various operations - these would be the actual codes for your remote
+            "off": "OFF_COMMAND",
+            "heat": {
+                "16": "HEAT_16_COMMAND",
+                "17": "HEAT_17_COMMAND",
+                "18": "HEAT_18_COMMAND",
+                "19": "HEAT_19_COMMAND",
+                "20": "HEAT_20_COMMAND",
+                "21": "HEAT_21_COMMAND",
+                "22": "HEAT_22_COMMAND",
+                "23": "HEAT_23_COMMAND",
+                "24": "HEAT_24_COMMAND",
+                "25": "HEAT_25_COMMAND",
+                "26": "HEAT_26_COMMAND",
+                "27": "HEAT_27_COMMAND",
+                "28": "HEAT_28_COMMAND",
+                "29": "HEAT_29_COMMAND",
+                "30": "HEAT_30_COMMAND"
+            },
+            "cool": {
+                "16": "COOL_16_COMMAND",
+                "17": "COOL_17_COMMAND",
+                "18": "COOL_18_COMMAND",
+                "19": "COOL_19_COMMAND",
+                "20": "COOL_20_COMMAND",
+                "21": "COOL_21_COMMAND",
+                "22": "COOL_22_COMMAND",
+                "23": "COOL_23_COMMAND",
+                "24": "COOL_24_COMMAND",
+                "25": "COOL_25_COMMAND",
+                "26": "COOL_26_COMMAND",
+                "27": "COOL_27_COMMAND",
+                "28": "COOL_28_COMMAND",
+                "29": "COOL_29_COMMAND",
+                "30": "COOL_30_COMMAND"
+            },
+            "auto": {
+                "16": "AUTO_16_COMMAND",
+                # ... more commands
+            },
+            "dry": {
+                "16": "DRY_16_COMMAND",
+                # ... more commands
+            },
+            "fan_only": "FAN_ONLY_COMMAND",
+            "fan_modes": {
+                "auto": "FAN_AUTO_COMMAND",
+                "low": "FAN_LOW_COMMAND",
+                "medium": "FAN_MEDIUM_COMMAND",
+                "high": "FAN_HIGH_COMMAND"
+            },
+            "swing_modes": {
+                "off": "SWING_OFF_COMMAND",
+                "on": "SWING_ON_COMMAND"
+            }
+        }
+    },
+    "srk-zsp": {
+        "name": "Mitsubishi Heavy SRK-ZSP",
+        "min_temp": 18,
+        "max_temp": 30,
+        "precision": 1.0,
+        "hvac_modes": [HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL, HVACMode.AUTO, HVACMode.DRY],
+        "fan_modes": [FAN_AUTO, FAN_LOW, FAN_MEDIUM, FAN_HIGH],
+        "swing_modes": [SWING_OFF, SWING_ON],
+        "commands": {
+            # Similar command structure but with different codes
+        }
+    }
+}
+
+# Default model to use if not specified
+DEFAULT_MODEL = "srk-zsx"
+
 # Platform schema for direct climate configuration
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Required(CONF_UNIQUE_ID): cv.string,
+    vol.Optional(CONF_NAME): cv.string,
     vol.Optional(CONF_REMOTE): cv.entity_id,
     vol.Optional(CONF_TEMPERATURE_SENSOR): cv.entity_id,
     vol.Optional(CONF_HUMIDITY_SENSOR): cv.entity_id,
+    vol.Optional("model", default=DEFAULT_MODEL): cv.string,
 })
 
-async def async_setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    async_add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
-) -> None:
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the Mitsubishi Heavy AC platform from config."""
-    # Create climate entity from direct configuration
-    name = config.get(CONF_NAME, DEFAULT_NAME)
+    # Get configuration values
     unique_id = config.get(CONF_UNIQUE_ID)
+    model = config.get("model", DEFAULT_MODEL)
     remote = config.get(CONF_REMOTE)
     temp_sensor = config.get(CONF_TEMPERATURE_SENSOR)
     humidity_sensor = config.get(CONF_HUMIDITY_SENSOR)
     
+    # Get device data for the specified model, or use default if not found
+    device_data = DEVICE_DATA.get(model, DEVICE_DATA[DEFAULT_MODEL])
+    
+    # Use configured name or fall back to device data name
+    name = config.get(CONF_NAME, device_data["name"])
+    
+    _LOGGER.debug(f"Setting up Mitsubishi Heavy AC with model: {model}, name: {name}")
+    
     async_add_entities([
         MitsubishiHeavyClimate(
-            hass, 
-            name, 
-            unique_id, 
-            remote, 
-            temp_sensor, 
-            humidity_sensor
+            hass, name, unique_id, device_data, remote, temp_sensor, humidity_sensor
         )
     ])
 
@@ -75,6 +157,7 @@ class MitsubishiHeavyClimate(ClimateEntity, RestoreEntity):
         hass,
         name,
         unique_id,
+        device_data,
         remote=None,
         temperature_sensor=None,
         humidity_sensor=None
@@ -83,26 +166,30 @@ class MitsubishiHeavyClimate(ClimateEntity, RestoreEntity):
         self.hass = hass
         self._name = name
         self._unique_id = unique_id
+        self._device_data = device_data  # Store device data for reference
         self._remote = remote
         self._temperature_sensor_entity_id = temperature_sensor
         self._humidity_sensor_entity_id = humidity_sensor
         
-        # Load device specific configurations
-        self._min_temp = 16
-        self._max_temp = 30
-        self._precision = 1.0
+        # Load device specific configurations from device_data
+        self._min_temp = device_data["min_temp"]
+        self._max_temp = device_data["max_temp"]
+        self._precision = device_data["precision"]
         
         self._hvac_mode = HVACMode.OFF
         self._current_temperature = None
         self._current_humidity = None
-        self._target_temperature = 22
+        self._target_temperature = 22  # Default target temperature
         self._fan_mode = FAN_AUTO
         self._swing_mode = SWING_OFF
         
-        # Load available modes
-        self._hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL, HVACMode.AUTO, HVACMode.DRY, HVACMode.FAN_ONLY]
-        self._fan_modes = [FAN_AUTO, FAN_LOW, FAN_MEDIUM, FAN_HIGH]
-        self._swing_modes = [SWING_OFF, SWING_ON]
+        # Load available modes from device data
+        self._hvac_modes = device_data["hvac_modes"]
+        self._fan_modes = device_data["fan_modes"]
+        self._swing_modes = device_data["swing_modes"]
+        
+        # Store commands for controlling the AC
+        self._commands = device_data["commands"]
     
     async def async_added_to_hass(self):
         """Run when entity about to be added."""
@@ -266,15 +353,30 @@ class MitsubishiHeavyClimate(ClimateEntity, RestoreEntity):
         
         # Send command through the configured remote
         if self._remote:
-            # Example of a service call to a Broadlink RM device
-            # You'll need to modify this to fit your specific remote control solution
-            service_data = {
-                "entity_id": self._remote,
-                "command": f"{hvac_mode.lower()}_{int(self._target_temperature)}"
-            }
-            await self.hass.services.async_call(
-                "remote", "send_command", service_data
-            )
+            command = None
+            
+            # Get the appropriate command based on the mode and temperature
+            if hvac_mode == HVACMode.OFF:
+                command = self._commands.get("off")
+            elif hvac_mode in (HVACMode.HEAT, HVACMode.COOL, HVACMode.AUTO, HVACMode.DRY):
+                # Get the command for the current mode and temperature
+                mode_commands = self._commands.get(hvac_mode.lower(), {})
+                temp_str = str(int(self._target_temperature))
+                command = mode_commands.get(temp_str)
+            elif hvac_mode == HVACMode.FAN_ONLY:
+                command = self._commands.get("fan_only")
+                
+            if command:
+                _LOGGER.debug(f"Sending command: {command} via remote: {self._remote}")
+                service_data = {
+                    "entity_id": self._remote,
+                    "command": command
+                }
+                await self.hass.services.async_call(
+                    "remote", "send_command", service_data
+                )
+            else:
+                _LOGGER.error(f"No command found for mode: {hvac_mode} at temp: {self._target_temperature}")
             
         await self.async_update_ha_state()
     
@@ -282,17 +384,69 @@ class MitsubishiHeavyClimate(ClimateEntity, RestoreEntity):
         """Set new target temperature."""
         if ATTR_TEMPERATURE in kwargs:
             self._target_temperature = kwargs[ATTR_TEMPERATURE]
-            # Add your code to send commands to the AC unit
+            
+            # If the unit is on, send the command for the new temperature
+            if self._hvac_mode != HVACMode.OFF and self._remote:
+                mode_commands = self._commands.get(self._hvac_mode.lower(), {})
+                temp_str = str(int(self._target_temperature))
+                command = mode_commands.get(temp_str)
+                
+                if command:
+                    _LOGGER.debug(f"Sending temperature command: {command}")
+                    service_data = {
+                        "entity_id": self._remote,
+                        "command": command
+                    }
+                    await self.hass.services.async_call(
+                        "remote", "send_command", service_data
+                    )
+                else:
+                    _LOGGER.error(f"No command found for mode: {self._hvac_mode} at temp: {self._target_temperature}")
+                    
             await self.async_update_ha_state()
     
     async def async_set_fan_mode(self, fan_mode):
         """Set new target fan mode."""
         self._fan_mode = fan_mode
-        # Add your code to send commands to the AC unit
+        
+        # Send fan mode command if remote is configured
+        if self._remote:
+            fan_commands = self._commands.get("fan_modes", {})
+            command = fan_commands.get(fan_mode.lower())
+            
+            if command:
+                _LOGGER.debug(f"Sending fan mode command: {command}")
+                service_data = {
+                    "entity_id": self._remote,
+                    "command": command
+                }
+                await self.hass.services.async_call(
+                    "remote", "send_command", service_data
+                )
+            else:
+                _LOGGER.error(f"No command found for fan mode: {fan_mode}")
+                
         await self.async_update_ha_state()
     
     async def async_set_swing_mode(self, swing_mode):
         """Set new target swing operation."""
         self._swing_mode = swing_mode
-        # Add your code to send commands to the AC unit
+        
+        # Send swing mode command if remote is configured
+        if self._remote:
+            swing_commands = self._commands.get("swing_modes", {})
+            command = swing_commands.get(swing_mode.lower())
+            
+            if command:
+                _LOGGER.debug(f"Sending swing mode command: {command}")
+                service_data = {
+                    "entity_id": self._remote,
+                    "command": command
+                }
+                await self.hass.services.async_call(
+                    "remote", "send_command", service_data
+                )
+            else:
+                _LOGGER.error(f"No command found for swing mode: {swing_mode}")
+                
         await self.async_update_ha_state()
