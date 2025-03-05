@@ -1,0 +1,10 @@
+{
+  "domain": "mitsubishi_heavy_ac",
+  "name": "Mitsubishi Heavy Industries Air Conditioner",
+  "documentation": "https://github.com/thedavidthomas/ha-mitsubishi-heavy-ac",
+  "dependencies": ["broadlink"],
+  "codeowners": ["@thedavidthomas"],
+  "requirements": [],
+  "version": "0.1.0",
+  "iot_class": "local_push"
+}
