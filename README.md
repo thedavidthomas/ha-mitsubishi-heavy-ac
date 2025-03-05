@@ -1,70 +1,96 @@
-# Mitsubishi Heavy Industries Air Conditioner for Home Assistant
+# Mitsubishi Heavy Industries AC - Home Assistant Integration
 
-This custom component allows controlling Mitsubishi Heavy Industries SRK50ZSA-W air conditioners (and similar models) in Home Assistant using a Broadlink RM Pro 4.
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+
+Control your Mitsubishi Heavy Industries air conditioning units with Home Assistant through a Broadlink RM Pro device.
+
+## Overview
+
+This integration allows you to control your Mitsubishi Heavy Industries air conditioner through Home Assistant using a Broadlink RM Pro IR blaster. It provides most of the functionality available on your physical remote control.
 
 ## Features
 
-- Control power on/off
-- Set operation mode (heat, cool, dry, fan, auto)
-- Set temperature
-- Control fan speed with various levels:
-  - quiet
-  - low
-  - medium
-  - medium_high
-  - high
-  - auto
-  - strong
-- Control vertical swing position
-- Control horizontal swing position
+- **Power**: On/Off control
+- **Mode**: Heat, Cool, Dry, Fan, Auto
+- **Temperature**: Set temperature
+- **Fan Speed**: Quiet, Low, Medium, Medium_High, High, Auto, Strong
+- **Swing**: Vertical and horizontal swing control
+- **Display**: Display light control
 
 ## Installation
 
-### Method 1: HACS Custom Repository
+### Option 1: HACS (recommended)
 
-1. In HACS, go to "Integrations"
-2. Click the three dots in the top right corner
-3. Select "Custom repositories"
-4. Enter the repository URL: `https://github.com/thedavidthomas/ha-mitsubishi-heavy-ac`
-5. Select "Integration" as the category
-6. Click "Add"
-7. Install the integration from HACS
+1. Ensure that [HACS](https://hacs.xyz/) is installed
+2. Add this repository as a custom repository in HACS:
+   - Go to HACS > Integrations
+   - Click the three dots in the top right corner
+   - Select "Custom repositories"
+   - Add the URL `https://github.com/thedavidthomas/ha-mitsubishi-heavy-ac`
+   - Select "Integration" as the category
+3. Click "Install"
+4. Restart Home Assistant
 
-### Method 2: Manual Installation
+### Option 2: Manual Installation
 
-1. Download or clone this repository
-2. Copy the `custom_components/mitsubishi_heavy_ac` directory to your Home Assistant `custom_components` directory
+1. Download the latest release
+2. Copy the `custom_components/mitsubishi_heavy_ac` directory to your Home Assistant's `custom_components` directory
 3. Restart Home Assistant
 
 ## Configuration
 
-Add the following to your `configuration.yaml`:
+### Option 1: Using a Broadlink Remote Entity (Recommended)
+
+If you already have a Broadlink RM Pro configured in Home Assistant:
 
 ```yaml
 climate:
   - platform: mitsubishi_heavy_ac
     name: Living Room AC
-    host: 192.168.1.123  # Your Broadlink RM Pro IP address
-    mac: 'AA:BB:CC:DD:EE:FF'  # Your Broadlink RM Pro MAC address
-    min_temp: 17  # Optional, defaults to 17
-    max_temp: 30  # Optional, defaults to 30
+    remote_entity_id: remote.rm4_pro_remote
 ```
 
-## Usage
+### Option 2: Direct IP/MAC Configuration
 
-After installation and configuration, the climate entity will be available in your Home Assistant. You can control:
+```yaml
+climate:
+  - platform: mitsubishi_heavy_ac
+    name: Living Room AC
+    host: 192.168.1.123 # Your Broadlink RM Pro IP address
+    mac: "AA:BB:CC:DD:EE:FF" # Your Broadlink RM Pro MAC address
+```
 
-- **Operation mode**: Off, Auto, Cool, Dry, Fan, Heat
-- **Temperature**: Between min_temp and max_temp (default 17-30°C)
-- **Fan speed**: Auto, Quiet, Low, Medium, Medium High, High, Strong
-- **Swing mode**: Multiple options for both vertical and horizontal airflow direction
+### Configuration Options
+
+| Option           | Type   | Required | Default | Description                               |
+| ---------------- | ------ | -------- | ------- | ----------------------------------------- |
+| name             | string | Yes      | -       | Name of the climate entity                |
+| remote_entity_id | string | No\*     | -       | Entity ID of your Broadlink RM Pro remote |
+| host             | string | No\*     | -       | IP address of your Broadlink RM Pro       |
+| mac              | string | No\*     | -       | MAC address of your Broadlink RM Pro      |
+| temperature_unit | string | No       | C       | Temperature unit (C or F)                 |
+| min_temp         | number | No       | 16      | Minimum temperature setting               |
+| max_temp         | number | No       | 30      | Maximum temperature setting               |
+
+\* Either `remote_entity_id` OR both `host` and `mac` must be provided.
 
 ## Troubleshooting
 
-- Make sure your Broadlink RM Pro is already set up and working in Home Assistant
-- Ensure the Broadlink device has line-of-sight to the air conditioner
-- Check Home Assistant logs for error messages
+### AC Not Responding
 
-## Credits
+- Ensure your Broadlink RM Pro has line-of-sight to the AC unit
+- Verify the IP address is correct and static
+- Check that your Broadlink device is on the same network as Home Assistant
 
-Based on the arduino-heatpumpir library by ToniA: https://github.com/ToniA/arduino-heatpumpir
+### Commands Not Working Correctly
+
+- Some AC models have slight variations in their IR protocols
+- Try learning the specific commands from your remote
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

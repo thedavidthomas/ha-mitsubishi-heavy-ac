@@ -1,12 +1,12 @@
 {
   "domain": "mitsubishi_heavy_ac",
-  "name": "Mitsubishi Heavy Industries Air Conditioner",
+  "name": "Mitsubishi Heavy Industries AC",
   "documentation": "https://github.com/thedavidthomas/ha-mitsubishi-heavy-ac",
-  "issue_tracker": "https://github.com/thedavidthomas/ha-mitsubishi-heavy-ac/issues",
-  "dependencies": ["broadlink"],
+  "dependencies": [],
   "codeowners": ["@thedavidthomas"],
   "requirements": [],
-  "iot_class": "local_push",
-  "version": "1.0.0",
-  "config_flow": false
+  "iot_class": "local_polling",
+  "version": "0.1.1",
+  "config_flow": false,
+  "issue_tracker": "https://github.com/thedavidthomas/ha-mitsubishi-heavy-ac/issues"
 }
