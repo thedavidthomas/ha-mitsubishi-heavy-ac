@@ -7,7 +7,14 @@ This custom component allows controlling Mitsubishi Heavy Industries SRK50ZSA-W 
 - Control power on/off
 - Set operation mode (heat, cool, dry, fan, auto)
 - Set temperature
-- Control fan speed (including quiet mode)
+- Control fan speed with various levels:
+  - quiet
+  - low
+  - medium
+  - medium_high
+  - high
+  - auto
+  - strong
 - Control vertical swing position
 - Control horizontal swing position
 
@@ -43,8 +50,21 @@ climate:
     max_temp: 30  # Optional, defaults to 30
 ```
 
+## Usage
+
+After installation and configuration, the climate entity will be available in your Home Assistant. You can control:
+
+- **Operation mode**: Off, Auto, Cool, Dry, Fan, Heat
+- **Temperature**: Between min_temp and max_temp (default 17-30°C)
+- **Fan speed**: Auto, Quiet, Low, Medium, Medium High, High, Strong
+- **Swing mode**: Multiple options for both vertical and horizontal airflow direction
+
 ## Troubleshooting
 
 - Make sure your Broadlink RM Pro is already set up and working in Home Assistant
 - Ensure the Broadlink device has line-of-sight to the air conditioner
 - Check Home Assistant logs for error messages
+
+## Credits
+
+Based on the arduino-heatpumpir library by ToniA: https://github.com/ToniA/arduino-heatpumpir

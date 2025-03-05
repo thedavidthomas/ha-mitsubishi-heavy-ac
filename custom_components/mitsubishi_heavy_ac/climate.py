@@ -68,28 +68,36 @@ SUPPORT_FLAGS = (
 
 HA_FAN_TO_MHI = {
     'auto': FanSpeed.AUTO,
-    'low': FanSpeed.SPEED_1,
-    'medium': FanSpeed.SPEED_2,
-    'high': FanSpeed.SPEED_3,
-    'silent': FanSpeed.SILENT,
     'quiet': FanSpeed.QUIET,
+    'low': FanSpeed.LOW,
+    'medium': FanSpeed.MEDIUM,
+    'medium_high': FanSpeed.MEDIUM_HIGH,
+    'high': FanSpeed.HIGH,
+    'strong': FanSpeed.STRONG,
 }
 
 MHI_FAN_TO_HA = {v: k for k, v in HA_FAN_TO_MHI.items()}
 
-HA_SWING_TO_MHI = {
-    'auto': VSwing.AUTO,
+HA_SWING_TO_MHI_V = {
+    'auto_vertical': VSwing.AUTO,
     'up': VSwing.UP,
-    'middle-up': VSwing.MUP,
+    'middle_up': VSwing.MUP,
     'middle': VSwing.MIDDLE,
-    'middle-down': VSwing.MDOWN,
+    'middle_down': VSwing.MDOWN,
     'down': VSwing.DOWN,
+}
+
+HA_SWING_TO_MHI_H = {
+    'auto_horizontal': HSwing.AUTO,
     'left': HSwing.LEFT,
-    'middle-left': HSwing.MLEFT,
-    'middle': HSwing.MIDDLE,
-    'middle-right': HSwing.MRIGHT,
+    'middle_left': HSwing.MLEFT,
+    'center': HSwing.MIDDLE,
+    'middle_right': HSwing.MRIGHT,
     'right': HSwing.RIGHT,
 }
+
+# Combined swing modes for both vertical and horizontal
+HA_SWING_TO_MHI = {**HA_SWING_TO_MHI_V, **HA_SWING_TO_MHI_H}
 
 MHI_SWING_TO_HA = {v: k for k, v in HA_SWING_TO_MHI.items()}
 
@@ -146,7 +154,8 @@ class MitsubishiHeavyAC(ClimateEntity):
         self._target_temperature = 22
         self._current_temperature = None
         self._fan_mode = "auto"
-        self._swing_mode = "auto"
+        self._swing_mode = "auto_vertical"
+        self._horizontal_swing = "auto_horizontal"
         self._available = True
         
     @property
@@ -246,7 +255,12 @@ class MitsubishiHeavyAC(ClimateEntity):
             
     async def async_set_swing_mode(self, swing_mode):
         """Set new target swing operation."""
-        self._swing_mode = swing_mode
+        # Determine if this is a vertical or horizontal swing setting
+        if swing_mode in HA_SWING_TO_MHI_V:
+            self._swing_mode = swing_mode
+        elif swing_mode in HA_SWING_TO_MHI_H:
+            self._horizontal_swing = swing_mode
+        
         await self.send_command()
         
     async def async_turn_on(self):
@@ -268,8 +282,10 @@ class MitsubishiHeavyAC(ClimateEntity):
             else:
                 ir_function = HA_HVAC_TO_MHI_FUNCTION[self._hvac_mode]
                 fan_speed = HA_FAN_TO_MHI[self._fan_mode]
-                v_swing = HA_SWING_TO_MHI[self._swing_mode]
-                h_swing = HA_SWING_TO_MHI[self._swing_mode]
+                
+                # Get swing settings - default to AUTO if not found
+                v_swing = HA_SWING_TO_MHI_V.get(self._swing_mode, VSwing.AUTO)
+                h_swing = HA_SWING_TO_MHI_H.get(self._horizontal_swing, HSwing.AUTO)
                 
                 if self._hvac_mode == HVAC_MODE_FAN_ONLY:
                     ir_code = ir_function(fan_speed=fan_speed, v_swing=v_swing, h_swing=h_swing)
@@ -290,11 +306,12 @@ class MitsubishiHeavyAC(ClimateEntity):
             )
             
             _LOGGER.debug(
-                "Sent IR command for %s mode with temperature %s°C, fan %s, swing %s",
+                "Sent IR command for %s mode with temperature %s°C, fan %s, v_swing %s, h_swing %s",
                 self._hvac_mode,
                 self._target_temperature,
                 self._fan_mode,
-                self._swing_mode
+                self._swing_mode,
+                self._horizontal_swing
             )
             
         except Exception as e:
