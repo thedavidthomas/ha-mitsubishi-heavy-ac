@@ -1,4 +1,4 @@
-"""Constants for the Mitsubishi Heavy Industries AC integration."""
+"""Constants for the Mitsubishi Heavy AC integration."""
 
 DOMAIN = "mitsubishi_heavy_ac"
 

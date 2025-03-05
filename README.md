@@ -94,3 +94,26 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Development
+
+### Validating the Component
+
+To check for common errors in the component:
+
+```bash
+python validate_component.py
+```
+
+This will check for:
+
+- Syntax errors in Python files
+- Proper manifest.json configuration
+- Deprecated Home Assistant imports
+- Translation files structure
+
+### Manual Testing
+
+1. Install the component in a development Home Assistant instance
+2. Enable debug logging for the component
+3. Check the logs for any errors or warnings
