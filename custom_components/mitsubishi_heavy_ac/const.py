@@ -1,11 +1,7 @@
 """Constants for the Mitsubishi Heavy AC integration."""
+from typing import Final
 
-DOMAIN = "mitsubishi_heavy_ac"
-
-# Config entries
-CONF_MIN_TEMP = "min_temp"
-CONF_MAX_TEMP = "max_temp"
-
-# Defaults
-DEFAULT_NAME = "Mitsubishi Heavy AC"
-DEFAULT_TIMEOUT = 10
+DOMAIN: Final = "mitsubishi_heavy_ac"
+DEFAULT_NAME: Final = "Mitsubishi Heavy AC"
+CONF_MIN_TEMP: Final = "min_temp"
+CONF_MAX_TEMP: Final = "max_temp"

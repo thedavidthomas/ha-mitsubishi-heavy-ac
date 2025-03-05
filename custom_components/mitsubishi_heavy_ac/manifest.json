@@ -1,12 +1,12 @@
 {
-  "domain": "mitsubishi_heavy_ac",
-  "name": "Mitsubishi Heavy Industries AC",
-  "documentation": "https://github.com/thedavidthomas/ha-mitsubishi-heavy-ac",
-  "dependencies": [],
-  "codeowners": ["@thedavidthomas"],
-  "requirements": [],
-  "iot_class": "local_polling",
-  "version": "0.1.2",
-  "config_flow": false,
-  "issue_tracker": "https://github.com/thedavidthomas/ha-mitsubishi-heavy-ac/issues"
+    "domain": "mitsubishi_heavy_ac",
+    "name": "Mitsubishi Heavy AC",
+    "documentation": "https://github.com/yourusername/ha-mitsubishi-heavy-ac",
+    "dependencies": [],
+    "codeowners": ["@yourusername"],
+    "requirements": [],
+    "iot_class": "local_push",
+    "version": "1.0.0",
+    "config_flow": false,
+    "issue_tracker": "https://github.com/thedavidthomas/ha-mitsubishi-heavy-ac/issues"
 }
